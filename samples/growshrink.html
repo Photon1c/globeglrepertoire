@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Animated Globe</title>
+  <script src="https://unpkg.com/three"></script>
+  <script src="https://unpkg.com/globe.gl"></script>
+</head>
+<body>
+  <div id="globe-container" style="width: 100vw; height: 100vh;"></div>
+  <script>
+    const globeElement = document.getElementById('globe-container');
+
+    // Initialize Globe.gl
+    const globeInstance = Globe()(globeElement)
+      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
+      .backgroundImageUrl('//unpkg.com/three-globe/example/img/night-sky.png');
+
+    // Access Three.js scene from Globe instance
+    const threeScene = globeInstance.scene();
+
+    // Define animation parameters
+    let time = 0;
+    const frequency = 0.5; // Cycles per second
+    const amplitude = 0.2; // Size change range (e.g., +/-20% of original size)
+
+    // Animate the globe's size
+    function animate() {
+      time += 0.01;
+      const scale = 1 + amplitude * Math.sin(2 * Math.PI * frequency * time);
+      threeScene.scale.set(scale, scale, scale);
+      requestAnimationFrame(animate); // Continue the animation loop
+    }
+
+    // Start the animation
+    animate();
+  </script>
+</body>
+</html>

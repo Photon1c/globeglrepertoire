@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    body {
+      margin: 0;
+    }
+    #chart {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+  <script src="//unpkg.com/three"></script>
+  <script src="//unpkg.com/globe.gl"></script>
+</head>
+<body>
+  <div id="chart"></div>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.136.0/build/three.module.js';
+  
+    const GLOBE_SHRINK_RATE = 0.001; // Globe shrink rate
+    const MIN_GLOBE_SCALE = 0.1; // Minimum globe scale
+    const ORBIT_RADIUS = 1.5; // Distance of the satellite from the globe
+    const ORBIT_SPEED = 0.02; // Speed of the satellite orbit
+    const ENERGY_PATH_DURATION = 1000; // Time for energy paths to animate
+
+    let globeScale = 1;
+    let orbitAngle = 0;
+
+    // Initialize the globe
+    const globe = Globe(document.getElementById('chart'))
+      .globeImageUrl('./red.png') // Ensure this texture exists
+      .objectsData([{ lat: 0, lng: 0, altitude: ORBIT_RADIUS }])
+      .objectLat(d => d.lat)
+      .objectLng(d => d.lng)
+      .objectAltitude(d => d.altitude)
+      .objectThreeObject(() => {
+        const geometry = new THREE.SphereGeometry(0.1, 32, 32); // Larger satellite size for visibility
+        const material = new THREE.MeshBasicMaterial({ color: 'green' });
+        return new THREE.Mesh(geometry, material);
+      })
+      .pathsData([
+        {
+          startLat: 0,
+          startLng: 0,
+          endLat: 0,
+          endLng: 0,
+        },
+      ])
+      .pathColor(() => 'yellow')
+      .pathDashLength(0.01)
+      .pathDashGap(0.005)
+      .pathDashAnimateTime(ENERGY_PATH_DURATION);
+
+    console.log('Globe initialized successfully.');
+
+    // Add lighting for visibility
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+    globe.scene().add(ambientLight);
+
+    // Update satellite orbit and energy paths
+    function updateOrbitAndEnergy() {
+      orbitAngle += ORBIT_SPEED;
+
+      // Calculate satellite position
+      const satelliteLat = Math.sin(orbitAngle) * 90; // Latitude in degrees
+      const satelliteLng = Math.cos(orbitAngle) * 180; // Longitude in degrees
+
+      // Debugging: Log satellite and path data
+      console.log('Satellite position:', { lat: satelliteLat, lng: satelliteLng, altitude: ORBIT_RADIUS });
+
+      // Update satellite position
+      const satelliteData = [{ lat: satelliteLat, lng: satelliteLng, altitude: ORBIT_RADIUS }];
+      if (!Array.isArray(satelliteData)) {
+        console.error('Invalid objectsData format:', satelliteData);
+        return;
+      }
+      globe.objectsData(satelliteData);
+
+      // Update energy path
+      const pathData = [
+        {
+          startLat: satelliteLat,
+          startLng: satelliteLng,
+          endLat: 0,
+          endLng: 0,
+        },
+      ];
+      if (!Array.isArray(pathData)) {
+        console.error('Invalid pathsData format:', pathData);
+        return;
+      }
+      globe.pathsData(pathData);
+    }
+
+    // Shrink the globe
+    function shrinkGlobe() {
+      if (globeScale > MIN_GLOBE_SCALE) {
+        globeScale -= GLOBE_SHRINK_RATE;
+        globe.pointOfView({ altitude: globeScale });
+      }
+    }
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      updateOrbitAndEnergy();
+      shrinkGlobe();
+    }
+
+    // Start the animation
+    animate();
+  </script>
+</body>
+</html>

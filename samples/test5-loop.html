@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+  <script src="//unpkg.com/three"></script>
+</head>
+<body>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.136.0/build/three.module.js';
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Add ambient and directional lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(10, 10, 10).normalize();
+    scene.add(directionalLight);
+
+    // Red globe (Earth)
+    const globeGeometry = new THREE.SphereGeometry(2, 32, 32);
+    const globeMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
+    const redGlobe = new THREE.Mesh(globeGeometry, globeMaterial);
+    scene.add(redGlobe);
+
+    // Moon-sized satellite
+    const moonGeometry = new THREE.SphereGeometry(0.8, 32, 32);
+    const moonMaterial = new THREE.MeshStandardMaterial({ color: 'green' });
+    const moonSatellite = new THREE.Mesh(moonGeometry, moonMaterial);
+    moonSatellite.position.set(8, 0, 0); // Positioned further out
+    scene.add(moonSatellite);
+
+    // Asteroid-sized satellite
+    const asteroidGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+    const asteroidMaterial = new THREE.MeshStandardMaterial({ color: 'yellow' });
+    const asteroid = new THREE.Mesh(asteroidGeometry, asteroidMaterial);
+    asteroid.position.set(0, 0, 0); // Initially at the red globe
+    scene.add(asteroid);
+
+    // Animation variables
+    let globeScale = 1; // Globe starts at full size
+    const minScale = 0.2; // Minimum scale
+    const shrinkRate = 0.001; // Shrinking rate
+    let asteroidAngle = 0; // Angle for asteroid's trajectory
+    const moonRadius = 8; // Distance of moon from the globe
+    const asteroidSpeed = 0.01; // Speed of asteroid movement
+
+    function shrinkGlobe() {
+      if (globeScale > minScale) {
+        globeScale -= shrinkRate;
+        redGlobe.scale.set(globeScale, globeScale, globeScale);
+      }
+    }
+
+    function updateAsteroid() {
+      asteroidAngle += asteroidSpeed;
+
+      // Move asteroid in a trajectory from moon to the red globe
+      const t = (Math.sin(asteroidAngle) + 1) / 2; // Normalized time (0 to 1)
+      asteroid.position.lerpVectors(moonSatellite.position, redGlobe.position, t);
+
+      // Shrink the globe when the asteroid reaches it
+      if (t > 0.99) shrinkGlobe();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Orbit the moon satellite
+      moonSatellite.position.set(
+        moonRadius * Math.cos(asteroidAngle),
+        moonRadius * Math.sin(asteroidAngle),
+        0
+      );
+
+      // Update asteroid trajectory
+      updateAsteroid();
+
+      renderer.render(scene, camera);
+    }
+
+    // Set initial camera position
+    camera.position.z = 20;
+
+    // Start animation loop
+    animate();
+  </script>
+</body>
+</html>

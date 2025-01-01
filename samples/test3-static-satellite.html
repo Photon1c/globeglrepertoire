@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    body { margin: 0; }
+    #chart {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+  <script src="//unpkg.com/globe.gl"></script>
+</head>
+<body>
+  <div id="chart"></div>
+  <script>
+    // Initialize the globe
+    const globe = Globe()(document.getElementById('chart'))
+      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png') // Globe texture
+      .backgroundColor('#000') // Black background
+      .pointOfView({ altitude: 2, lat: 0, lng: 0 }); // Initial view
+
+    // Create satellite and energy line
+    const satelliteData = { lat: 0, lng: 0, altitude: 0.1 };
+    const redGlobeData = { lat: 0, lng: 0, altitude: 0 };
+
+    // Set objects
+    globe
+      .objectsData([satelliteData])
+      .objectLat(d => d.lat)
+      .objectLng(d => d.lng)
+      .objectAltitude(d => d.altitude)
+      .objectColor(() => 'green') // Satellite color
+      .objectLabel(() => 'Satellite') // Label for satellite
+      .pathColor(() => 'yellow') // Energy line color
+      .pathDashLength(0.05)
+      .pathDashGap(0.02)
+      .pathDashAnimateTime(1000);
+
+    // Animation variables
+    let angle = 0;
+    const satelliteOrbitRadius = 0.5;
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Update satellite position
+      angle += 0.01;
+      satelliteData.lat = satelliteOrbitRadius * Math.sin(angle) * 90;
+      satelliteData.lng = satelliteOrbitRadius * Math.cos(angle) * 180;
+
+      // Update globe data
+      globe.objectsData([satelliteData]);
+    }
+
+    // Start the animation loop
+    animate();
+  </script>
+</body>
+</html>

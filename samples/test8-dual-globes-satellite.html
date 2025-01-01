@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+    }
+    #chart {
+      width: 100vw;
+      height: 100vh;
+    }
+    .moon {
+      position: absolute;
+      width: 150px; /* Moon size */
+      height: 150px;
+      border-radius: 50%;
+      background: green; /* Moon color */
+      transform-origin: center;
+    }
+  </style>
+  <script src="//unpkg.com/globe.gl"></script>
+</head>
+<body>
+  <div id="chart"></div>
+  <div id="moon" class="moon"></div>
+  <script>
+    const MOON_DISTANCE = 300; // Distance of the moon from the globe
+    const ASTEROID_TRAVEL_TIME = 3000; // Time for asteroid to reach the globe (ms)
+    const SHRINK_RATE = 0.05; // Shrinking rate of the globe
+    const ASTEROID_SIZE = 5; // Asteroid size
+    const GLOBE_SCALE_MIN = 0.2; // Minimum scale of the globe
+    let globeScale = 1; // Initial scale of the globe
+    let asteroidInFlight = false;
+
+    // Initialize the globe
+    const globe = Globe()
+      .globeImageUrl('./red.png')
+      .backgroundColor('#000')
+      .showAtmosphere(true)
+      .atmosphereColor('#00f')
+      .atmosphereAltitude(0.2)
+      .objectsData([]);
+
+    const chartDiv = document.getElementById('chart');
+    globe(chartDiv);
+
+    // Moon position
+    const moonDiv = document.getElementById('moon');
+    let moonPosition = { x: 0, y: 0 };
+
+    function positionMoon() {
+      const angle = Date.now() * 0.001; // Time-based rotation
+      moonPosition.x = window.innerWidth / 2 + MOON_DISTANCE * Math.cos(angle);
+      moonPosition.y = window.innerHeight / 2 + MOON_DISTANCE * Math.sin(angle);
+      moonDiv.style.left = `${moonPosition.x}px`;
+      moonDiv.style.top = `${moonPosition.y}px`;
+    }
+
+    // Asteroid logic
+    const asteroid = {
+      id: 'asteroid',
+      lat: 0,
+      lng: 0,
+      altitude: 0.2,
+      size: ASTEROID_SIZE,
+      color: 'yellow',
+    };
+
+    function shrinkGlobe() {
+      if (globeScale > GLOBE_SCALE_MIN) {
+        globeScale -= SHRINK_RATE;
+        chartDiv.style.transform = `scale(${globeScale})`;
+      }
+    }
+
+    function animateAsteroid() {
+      if (asteroidInFlight) return;
+
+      asteroidInFlight = true;
+
+      const startLat = moonPosition.y / window.innerHeight * 180 - 90; // Map y to lat
+      const startLng = moonPosition.x / window.innerWidth * 360 - 180; // Map x to lng
+      const endLat = 0; // Earth's lat
+      const endLng = 0; // Earth's lng
+
+      let progress = 0;
+
+      const interval = setInterval(() => {
+        progress += 1 / (ASTEROID_TRAVEL_TIME / 60); // Update every 60 FPS
+        asteroid.lat = startLat * (1 - progress) + endLat * progress;
+        asteroid.lng = startLng * (1 - progress) + endLng * progress;
+
+        if (progress >= 1) {
+          clearInterval(interval);
+          shrinkGlobe();
+          asteroidInFlight = false;
+        }
+
+        globe.objectsData([asteroid]);
+      }, 1000 / 60);
+    }
+
+    function animate() {
+      positionMoon(); // Update the moon's position
+      animateAsteroid(); // Launch asteroid animation
+      requestAnimationFrame(animate);
+    }
+
+    // Initialize objects and start animation
+    globe.objectsData([asteroid]);
+    animate();
+  </script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+    }
+    #chart {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+  <script src="//unpkg.com/globe.gl"></script>
+</head>
+<body>
+  <div id="chart"></div>
+  <script>
+    const MOON_DISTANCE = 10; // Distance between Moon and Earth
+    const EARTH_SCALE = 1; // Earth scale
+    const MOON_SCALE = 0.5; // Moon scale
+    const ASTEROID_SCALE = 0.2; // Asteroid scale
+    const SHRINK_RATE = 0.02; // Shrink rate for Earth
+    const ASTEROID_SPEED = 0.01; // Speed of asteroid movement
+
+    let earthScale = EARTH_SCALE; // Earth starting scale
+    let asteroidProgress = 0; // Progress of asteroid animation
+    let asteroidInFlight = false; // Track asteroid flight status
+
+    // Initialize the Globe (Earth)
+    const globe = Globe()
+      .globeImageUrl('./red.png') // Red Earth texture
+      .backgroundColor('#000') // Black background
+      .showAtmosphere(true)
+      .atmosphereColor('#00f')
+      .atmosphereAltitude(0.2)
+      .objectsData([]);
+
+    const chartDiv = document.getElementById('chart');
+    globe(chartDiv);
+
+    // Moon as a secondary globe (positioned manually)
+    const moonPosition = { lat: 0, lng: MOON_DISTANCE, altitude: 0.3 };
+    const moon = {
+      id: 'moon',
+      lat: moonPosition.lat,
+      lng: moonPosition.lng,
+      altitude: moonPosition.altitude,
+      size: MOON_SCALE,
+      color: 'green',
+    };
+
+    // Asteroid data
+    const asteroid = {
+      id: 'asteroid',
+      lat: 0,
+      lng: 0,
+      altitude: 0.2,
+      size: ASTEROID_SCALE,
+      color: 'yellow',
+    };
+
+    function shrinkEarth() {
+      if (earthScale > 0.2) {
+        earthScale -= SHRINK_RATE;
+        chartDiv.style.transform = `scale(${earthScale})`; // Shrink Earth
+      }
+    }
+
+    function animateAsteroid() {
+      if (asteroidInFlight) return;
+
+      asteroidInFlight = true;
+      asteroid.lat = moon.lat;
+      asteroid.lng = moon.lng;
+
+      const startLat = moon.lat;
+      const startLng = moon.lng;
+
+      const asteroidInterval = setInterval(() => {
+        asteroidProgress += ASTEROID_SPEED;
+
+        asteroid.lat = startLat * (1 - asteroidProgress);
+        asteroid.lng = startLng * (1 - asteroidProgress);
+
+        if (asteroidProgress >= 1) {
+          clearInterval(asteroidInterval);
+          asteroidProgress = 0;
+          shrinkEarth(); // Shrink Earth upon collision
+          asteroidInFlight = false;
+        }
+
+        // Update globe objects
+        globe.objectsData([moon, asteroid]);
+      }, 1000 / 60); // 60 FPS
+    }
+
+    function animateMoon() {
+      const moonAngle = Date.now() * 0.001;
+      moon.lat = MOON_DISTANCE * Math.sin(moonAngle);
+      moon.lng = MOON_DISTANCE * Math.cos(moonAngle);
+    }
+
+    function animate() {
+      animateMoon();
+      animateAsteroid();
+      globe.objectsData([moon, asteroid]);
+      requestAnimationFrame(animate);
+    }
+
+    // Start the animation loop
+    globe.objectsData([moon, asteroid]);
+    animate();
+  </script>
+</body>
+</html>

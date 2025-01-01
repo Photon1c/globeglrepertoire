@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    body { margin: 0; }
+  </style>
+  <script src="//unpkg.com/three"></script>
+</head>
+<body>
+  <div id="chart"></div>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.136.0/build/three.module.js';
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Add ambient and directional light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(10, 10, 10).normalize();
+    scene.add(directionalLight);
+
+    // Create the red globe (scaled 5 times)
+    const globeGeometry = new THREE.SphereGeometry(10, 64, 64); // Larger size
+    const globeMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
+    const redGlobe = new THREE.Mesh(globeGeometry, globeMaterial);
+    scene.add(redGlobe);
+
+    // Create the green satellite
+    const satelliteGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+    const satelliteMaterial = new THREE.MeshStandardMaterial({ color: 'green' });
+    const greenSatellite = new THREE.Mesh(satelliteGeometry, satelliteMaterial);
+    scene.add(greenSatellite);
+
+    // Position initial objects
+    redGlobe.position.set(0, 0, 0);
+    const satelliteRadius = 20; // Twice the original distance
+    greenSatellite.position.set(satelliteRadius, 0, 0);
+
+    // Create particle system for energy effect
+    const energyParticles = new THREE.BufferGeometry();
+    const particleCount = 100;
+    const particlePositions = new Float32Array(particleCount * 3);
+
+    for (let i = 0; i < particleCount; i++) {
+      const alpha = i / particleCount; // Spread particles
+      const x = (1 - alpha) * redGlobe.position.x + alpha * greenSatellite.position.x;
+      const y = (1 - alpha) * redGlobe.position.y + alpha * greenSatellite.position.y;
+      const z = (1 - alpha) * redGlobe.position.z + alpha * greenSatellite.position.z;
+
+      particlePositions[i * 3] = x;
+      particlePositions[i * 3 + 1] = y;
+      particlePositions[i * 3 + 2] = z;
+    }
+
+    energyParticles.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    const energyMaterial = new THREE.PointsMaterial({ color: 'yellow', size: 0.2 });
+    const energyLine = new THREE.Points(energyParticles, energyMaterial);
+    scene.add(energyLine);
+
+    // Animation variables
+    let angle = 0;
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Orbit the green satellite around the red globe
+      angle += 0.01;
+      greenSatellite.position.set(
+        satelliteRadius * Math.cos(angle),
+        satelliteRadius * Math.sin(angle),
+        0
+      );
+
+      // Update energy line particles
+      const positions = energyParticles.attributes.position.array;
+      for (let i = 0; i < particleCount; i++) {
+        const alpha = i / particleCount;
+        positions[i * 3] =
+          (1 - alpha) * redGlobe.position.x + alpha * greenSatellite.position.x;
+        positions[i * 3 + 1] =
+          (1 - alpha) * redGlobe.position.y + alpha * greenSatellite.position.y;
+        positions[i * 3 + 2] =
+          (1 - alpha) * redGlobe.position.z + alpha * greenSatellite.position.z;
+      }
+      energyParticles.attributes.position.needsUpdate = true;
+
+      renderer.render(scene, camera);
+    }
+
+    // Set initial camera position (zoomed out)
+    camera.position.z = 50;
+
+    // Start the animation loop
+    animate();
+  </script>
+</body>
+</html>

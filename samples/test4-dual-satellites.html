@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+    }
+    #chart {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+  <script src="//unpkg.com/globe.gl"></script>
+</head>
+<body>
+  <div id="chart"></div>
+  <script>
+    const SAT_SPEED = 0.005; // Speed of moon satellite orbit
+    const AST_SPEED = 0.005; // Speed of asteroid
+    const GLOBE_SHRINK_RATE = 0.02; // Shrinking rate of the globe
+    const MIN_SCALE = 0.4; // Minimum globe scale
+    const SAT_ALTITUDE = 0.9; // Moon satellite altitude
+    const AST_ALTITUDE = 0.3; // Asteroid altitude
+
+    let satelliteAngle = 0; // Angle for moon satellite orbit
+    let asteroidProgress = 0; // Progress of asteroid movement
+    let globeScale = 1; // Globe scale
+    let shrinking = false; // Track shrinking logic
+
+    const chartDiv = document.getElementById('chart');
+    const globe = Globe()
+      .globeImageUrl('./red.png') // Globe texture
+      .backgroundColor('#000') // Black background
+      .objectsData([]); // Initialize with empty data
+
+    globe(chartDiv);
+
+    // Moon satellite (larger and green)
+    const moon = {
+      id: 'moon',
+      lat: 0,
+      lng: 0,
+      altitude: SAT_ALTITUDE,
+      size: 8,
+      color: 'green',
+    };
+
+    // Asteroid object (smaller and yellow)
+    const asteroid = {
+      id: 'asteroid',
+      lat: 0,
+      lng: 0,
+      altitude: AST_ALTITUDE,
+      size: 3,
+      color: 'yellow',
+    };
+
+    // Update asteroid position
+    function updateAsteroid() {
+      if (!shrinking) asteroidProgress += AST_SPEED;
+      if (asteroidProgress >= 1) {
+        asteroidProgress = 0; // Reset asteroid progress
+        shrinking = true;
+        setTimeout(() => {
+          shrinking = false;
+          if (globeScale > MIN_SCALE) {
+            globeScale -= GLOBE_SHRINK_RATE;
+            globe.scale.set(globeScale, globeScale, globeScale); // Shrink globe
+          }
+        }, 1000); // Delay for impact simulation
+      }
+
+      const startLat = moon.lat;
+      const startLng = moon.lng;
+      const endLat = 0; // Globe center
+      const endLng = 0;
+
+      // Interpolate asteroid position
+      asteroid.lat = startLat + (endLat - startLat) * asteroidProgress;
+      asteroid.lng = startLng + (endLng - startLng) * asteroidProgress;
+    }
+
+    // Animation loop
+    function animate() {
+      // Orbit moon satellite
+      satelliteAngle += SAT_SPEED;
+      moon.lat = 40 * Math.sin(satelliteAngle); // Further out
+      moon.lng = 40 * Math.cos(satelliteAngle);
+
+      // Update asteroid position
+      updateAsteroid();
+
+      // Update globe objects
+      globe.objectsData([moon, asteroid]);
+
+      requestAnimationFrame(animate);
+    }
+
+    // Start animation loop
+    animate();
+  </script>
+</body>
+</html>

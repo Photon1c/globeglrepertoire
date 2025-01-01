@@ -1,0 +1,69 @@
+<head>
+  <style> body { margin: 0; } </style>
+  <script src="//unpkg.com/globe.gl"></script>
+</head>
+
+<body>
+<div id="controls">
+  <label for="productFilter">Select Product:</label>
+  <select id="productFilter">
+      <option value="all">All</option>
+      <option value="coffee">Coffee</option>
+      <option value="cacao">Cacao</option>
+  </select>
+</div>
+<div id="globeViz"></div>
+
+<script>
+  const myGlobe = new Globe(document.getElementById('globeViz'))
+    .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
+    .arcStartLat(d => d.source.lat)
+    .arcStartLng(d => d.source.lon)
+    .arcEndLat(d => d.target.lat)
+    .arcEndLng(d => d.target.lon)
+    .arcColor(() => ['rgba(0, 255, 0, 0.7)', 'rgba(255, 0, 0, 0.7)'])
+    .arcDashLength(0.4)
+    .arcDashGap(0.2)
+    .arcDashAnimateTime(1500)
+    .pointColor(() => 'orange')
+    .pointAltitude(0)
+    .pointRadius(0.04);
+
+  // Load CSV data
+  let allData = [];
+  fetch('supply_routes.csv')
+    .then(response => response.text())
+    .then(csvText => {
+      allData = csvText.trim().split('\n').slice(1).map(row => {
+        const [id, type, stage, volume, sourceLat, sourceLon, targetLat, targetLon] = row.split(',');
+        return {
+          id,
+          type,
+          stage,
+          volume: +volume,
+          source: { lat: +sourceLat, lon: +sourceLon },
+          target: { lat: +targetLat, lon: +targetLon }
+        };
+      });
+
+      updateGlobe('all'); // Display all data initially
+    });
+
+  // Update globe data based on filter
+  const updateGlobe = (filter) => {
+    const filteredData = filter === 'all'
+      ? allData
+      : allData.filter(d => d.type === filter);
+
+    myGlobe
+      .pointsData(filteredData.map(d => d.source)) // Plot source points
+      .arcsData(filteredData); // Draw arcs
+  };
+
+  // Add event listener to dropdown
+  document.getElementById('productFilter').addEventListener('change', (event) => {
+    const selectedValue = event.target.value;
+    updateGlobe(selectedValue);
+  });
+</script>
+</body>

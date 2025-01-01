@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    body { margin: 0; }
+  </style>
+  <script src="//unpkg.com/three"></script>
+</head>
+<body>
+  <div id="chart"></div>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.136.0/build/three.module.js';
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Add ambient and directional light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(10, 10, 10).normalize();
+    scene.add(directionalLight);
+
+    // Create the red globe
+    const globeGeometry = new THREE.SphereGeometry(2, 32, 32);
+    const globeMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
+    const redGlobe = new THREE.Mesh(globeGeometry, globeMaterial);
+    scene.add(redGlobe);
+
+    // Create the green satellite
+    const satelliteGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+    const satelliteMaterial = new THREE.MeshStandardMaterial({ color: 'green' });
+    const greenSatellite = new THREE.Mesh(satelliteGeometry, satelliteMaterial);
+    scene.add(greenSatellite);
+
+    // Position initial objects
+    redGlobe.position.set(0, 0, 0);
+    greenSatellite.position.set(5, 0, 0);
+
+    // Create the energy flow line
+    const points = [redGlobe.position.clone(), greenSatellite.position.clone()];
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 'yellow' });
+    const energyLine = new THREE.Line(lineGeometry, lineMaterial);
+    scene.add(energyLine);
+
+    // Animation variables
+    let angle = 0;
+    let globeScale = 2;
+    const globeShrinkRate = 0.001; // Rate at which the globe shrinks
+    const minGlobeScale = 0.2; // Minimum globe size
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Orbit the green satellite around the red globe
+      angle += 0.02;
+      const radius = 5;
+      greenSatellite.position.set(
+        radius * Math.cos(angle),
+        radius * Math.sin(angle),
+        0
+      );
+
+      // Update energy flow line
+      energyLine.geometry.setFromPoints([
+        redGlobe.position.clone(),
+        greenSatellite.position.clone()
+      ]);
+
+      // Shrink the red globe dynamically
+      if (globeScale > minGlobeScale) {
+        globeScale -= globeShrinkRate;
+        redGlobe.scale.set(globeScale, globeScale, globeScale);
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // Set initial camera position
+    camera.position.z = 30;
+
+    // Start the animation loop
+    animate();
+  </script>
+</body>
+</html>

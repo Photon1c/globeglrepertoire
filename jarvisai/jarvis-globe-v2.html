@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=0.3">
+    <style>
+        #info-box {
+            width: 20vw;
+            height: 93vh;
+            background: rgba(211, 211, 211, 0.8); /* Light gray with semi-transparency */
+            color: black;
+            padding: 20px;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+            font-family: Arial, sans-serif;
+            font-size: 1em;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            text-align: center;
+            position: absolute;
+            right: 0;
+            top: 0;
+            z-index: 2;
+            overflow: hidden;
+        }
+
+        #chat-history {
+            flex-grow: 1; /* Fills available vertical space */
+            width: 100%;
+            background: rgba(255, 255, 255, 0.9); /* White with slight transparency */
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow-y: auto; /* Scroll when content exceeds height */
+            padding: 10px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        #chat-input {
+            display: flex;
+            width: 100%;
+            gap: 5px; /* Space between input and button */
+        }
+
+        #user-input {
+            flex-grow: 1; /* Input takes most of the width */
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        #send-button {
+            padding: 10px 15px;
+            border: none;
+            background: #007bff; /* Button color */
+            color: white;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        #send-button:hover {
+            background: #0056b3; /* Hover effect */
+        }
+
+        .ai-response {
+            margin: 5px 0;
+            text-align: left;
+            font-size: 0.9em;
+        }
+
+        .user-response {
+            margin: 5px 0;
+            text-align: right;
+            font-size: 0.9em;
+            color: #333;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="//unpkg.com/globe.gl"></script>
+</head>
+
+<body>
+    <div id="chart"></div>
+    <div id="info-box">
+        <h2>Chat with Cheddar Butler AI</h2>
+        <!-- Chat history section -->
+        <div id="chat-history">
+            <!-- Example responses (to be dynamically populated) -->
+            <p class="ai-response"><strong>AI:</strong> Welcome! Ask me about the globe or anything else.</p>
+        </div>
+
+        <!-- User input section -->
+        <div id="chat-input">
+            <input type="text" id="user-input" placeholder="Type your message here..." />
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+    <script>
+        // Initialize the globe
+        const globe = Globe()(document.getElementById('chart'))
+            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
+            .backgroundImageUrl('//unpkg.com/three-globe/example/img/night-sky.png')
+            .labelsData([])
+            .labelLat(d => d.lat)
+            .labelLng(d => d.lng)
+            .labelText(d => d.name)
+            .labelSize(() => 1.5)
+            .labelDotRadius(() => 0.2)
+            .labelColor(() => 'rgba(255, 255, 255, 0.75)')
+            .labelResolution(2);
+
+        // Start zoomed out
+        globe.pointOfView({ lat: 0, lng: 0, altitude: 2.0 });
+
+        // Function to add a label on the globe
+        function addLabel(lat, lng, name) {
+            globe.labelsData([...globe.labelsData(), { lat, lng, name }]);
+        }
+
+        // Example JavaScript for handling input and displaying messages
+        const chatHistory = document.getElementById('chat-history');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        // Function to add a message to the chat history
+        function addMessage(role, text) {
+            const message = document.createElement('p');
+            message.className = role === 'user' ? 'user-response' : 'ai-response';
+            message.innerHTML = `<strong>${role === 'user' ? 'You' : 'AI'}:</strong> ${text}`;
+            chatHistory.appendChild(message);
+            chatHistory.scrollTop = chatHistory.scrollHeight; // Scroll to the latest message
+        }
+
+        // Handle button click
+        sendButton.addEventListener('click', async () => {
+            const message = userInput.value.trim();
+            if (message) {
+                addMessage('user', message); // Add user's message
+                userInput.value = ''; // Clear input
+                
+                // Call OpenAI API
+                const openaiResponse = await fetch('/get_ai_response', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: message })
+                });
+                
+                const aiResult = await openaiResponse.json();
+                addMessage('ai', aiResult.response);
+
+                // Parse response for location data and update the globe
+                const parsedLocations = parseLocationFromAI(aiResult.response);
+                if (parsedLocations.length > 0) {
+                    parsedLocations.forEach(loc => {
+                        addLabel(loc.lat, loc.lng, loc.name);
+                    });
+                }
+            }
+        });
+
+        // Handle Enter key for sending
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendButton.click();
+            }
+        });
+
+        // Dummy function to extract location from AI response (you may use NLP here)
+        function parseLocationFromAI(response) {
+            const locations = [
+                { lat: 40.7128, lng: -74.0060, name: 'New York' },
+                { lat: 34.0522, lng: -118.2437, name: 'Los Angeles' }
+            ];
+            return locations.filter(loc => response.includes(loc.name));
+        }
+    </script>
+</body>
+</html>

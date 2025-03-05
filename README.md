@@ -10,4 +10,4 @@ Check back later as this page is updated.
 
 [Jarvis Globe](jarvisai/) is an attempt to fuse the Google Maps and OpenAI APIs with a 3D earth that can be explored.  
 
-![Sample Page Picture](memory/sample_page.png)
+![Sample Page Picture](memory/sample_page.PNG)
